@@ -1,0 +1,89 @@
+## Reference: https://github.com/bitnami/charts/blob/master/bitnami/keycloak/values.yaml
+## Keycloak authentication parameters
+## ref: https://github.com/bitnami/bitnami-docker-keycloak#admin-credentials
+##
+auth:
+  createAdminUser: true
+  ## @param auth.adminUser Keycloak administrator user
+  ##
+  adminUser: admin
+  managementUser: manager
+  existingSecret: "keycloak-admin-secret"
+## @param proxyAddressForwarding Enable Proxy Address Forwarding
+## ref: https://www.keycloak.org/docs/latest/server_installation/#_setting-up-a-load-balancer-or-proxy
+##
+#proxyAddressForwarding: false
+extraEnvVars:
+- name: KEYCLOAK_PROXY_ADDRESS_FORWARDING
+  value: "true"
+- name: KEYCLOAK_FRONTEND_URL
+  value: "https://auth.happylittlecloud.ca"
+## @param configuration Keycloak Configuration. Auto-generated based on other parameters when not specified
+## Specify content for standalone-ha.xml
+## NOTE: This will override configuring Keycloak based on environment variables (including those set by the chart)
+## The standalone-ha.xml is auto-generated based on other parameters when this parameter is not specified
+##
+## Example:
+## configuration: |-
+##    foo: bar
+##    baz:
+##
+configuration: ""
+## @param existingConfigmap Name of existing ConfigMap with Keycloak configuration
+## NOTE: When it's set the configuration parameter is ignored
+##
+existingConfigmap: ""
+## @param extraStartupArgs Extra default startup args
+##
+extraStartupArgs: ""
+## @param initdbScripts Dictionary of initdb scripts
+## Specify dictionary of scripts to be run at first boot
+## ref: https://github.com/bitnami/bitnami-docker-keycloak#initializing-a-new-instance
+## Example:
+## initdbScripts:
+##   my_init_script.sh: |
+##      #!/bin/bash
+##      echo "Do something."
+##
+initdbScripts: {}
+## @param initdbScriptsConfigMap ConfigMap with the initdb scripts (Note: Overrides `initdbScripts`)
+##
+initdbScriptsConfigMap: ""
+service:
+  type: ClusterIP
+## Ingress configuration
+##
+ingress:
+  enabled: false
+  hostname: auth.happylittlecloud.ca
+  tls: true
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+networkPolicy:
+  enabled: false
+  ## @param networkPolicy.allowExternal Don't require client label for connections
+  ## The Policy model to apply. When set to false, only pods with the correct
+  ## client label will have network access to the ports Keycloak is listening
+  ## on. When true, Keycloak will accept connections from any source
+  ## (with the correct destination port).
+  ##
+  allowExternal: true
+  ## @param networkPolicy.additionalRules Additional NetworkPolicy rules
+  ## Note that all rules are OR-ed.
+  ## Example:
+  ## additionalRules:
+  ##   - matchLabels:
+  ##       - role: frontend
+  ##   - matchExpressions:
+  ##       - key: role
+  ##         operator: In
+  ##         values:
+  ##           - frontend
+  ##
+  additionalRules: {}
+## @section Database parameters
+postgresql:
+  enabled: true
+# externalDatabase:
+#   existingSecret: "keycloak-db-secret"
