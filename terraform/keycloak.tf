@@ -111,21 +111,6 @@ resource "keycloak_user" "minio_user" {
   }
 }
 
-
-resource "kubernetes_secret" "minio_initial_user" {
-  metadata {
-    name = "minio-initial-user"
-    namespace = "minio"
-  }
-
-  data = {
-    "username" = "cboin"
-    "password" = random_string.keycloak_minio_user_password.result
-  }
-}
-
-
-
 resource "keycloak_openid_user_attribute_protocol_mapper" "minio_user_attribute_mapper" {
   realm_id       = keycloak_realm.minio_realm.id
   client_id      = keycloak_openid_client.openid_client.id
@@ -183,12 +168,24 @@ resource "keycloak_role" "minio_admin_role" {
 resource "kubernetes_secret" "minio_oidc_config" {
   metadata {
     name = "minio-oidc-config"
-    namespace = "minio"
+    namespace = "minio-gateway"
   }
 
   data = {
     "MINIO_IDENTITY_OPENID_CONFIG_URL" = "https://localhost:8443/auth/realms/${keycloak_realm.minio_realm.id}/.well-known/openid-configuration"
     "MINIO_IDENTITY_OPENID_CLIENT_ID" = local.minio_client_id
     "MINIO_IDENTITY_OPENID_CLIENT_SECRET" = random_string.keycloak_minio_client_secret.result
+  }
+}
+
+resource "kubernetes_secret" "minio_initial_user" {
+  metadata {
+    name = "minio-initial-user"
+    namespace = "minio-gateway"
+  }
+
+  data = {
+    "username" = "cboin"
+    "password" = random_string.keycloak_minio_user_password.result
   }
 }
