@@ -165,16 +165,17 @@ resource "keycloak_role" "minio_admin_role" {
   #}
 }
 
+
 resource "kubernetes_secret" "minio_oidc_config" {
   metadata {
-    name = "minio-oidc-config"
+    name      = "minio-oidc-config"
     namespace = "minio-gateway"
   }
 
   data = {
-    "MINIO_IDENTITY_OPENID_CONFIG_URL" = "https://localhost:8443/auth/realms/${keycloak_realm.minio_realm.id}/.well-known/openid-configuration"
-    "MINIO_IDENTITY_OPENID_CLIENT_ID" = local.minio_client_id
-    "MINIO_IDENTITY_OPENID_CLIENT_SECRET" = random_string.keycloak_minio_client_secret.result
+    "MINIO_IDENTITY_OPENID_CONFIG_URL"       = "http://keycloak.keycloak:80/auth/realms/${keycloak_realm.minio_realm.id}/.well-known/openid-configuration"
+    "MINIO_IDENTITY_OPENID_CLIENT_ID"        = keycloak_openid_client.openid_client.client_id
+    "MINIO_IDENTITY_OPENID_CLIENT_SECRET"    = keycloak_openid_client.openid_client.client_secret
   }
 }
 

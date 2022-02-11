@@ -37,9 +37,24 @@ extraEnvVars:
       secretKeyRef:
         name: minio
         key: root-password
+  - name: MINIO_IDENTITY_OPENID_CONFIG_URL
+    valueFrom:
+      secretKeyRef:
+        name: minio-oidc-config
+        key: MINIO_IDENTITY_OPENID_CONFIG_URL
+  - name: MINIO_IDENTITY_OPENID_CLIENT_ID
+    valueFrom:
+      secretKeyRef:
+        name: minio-oidc-config
+        key: MINIO_IDENTITY_OPENID_CLIENT_ID
+  - name: MINIO_IDENTITY_OPENID_CLIENT_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: minio-oidc-config
+        key: MINIO_IDENTITY_OPENID_CLIENT_SECRET
+  # - name: MINIO_IAM_OPA_URL
+  #   value: http://minio-gateway-opa:8181/v1/data/httpapi/authz
 
-  #- name: MINIO_IAM_OPA_URL
-  #  value: http://minio-gateway-opa:8181/v1/data/httpapi/authz
 ingress:
   enabled: false
 resources: {}

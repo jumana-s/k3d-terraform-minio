@@ -57,6 +57,6 @@ provider "keycloak" {
     client_id     = "admin-cli"
     username      = "admin"
     password      = random_string.keycloak_admin_password.result
-    url           = "https://localhost:8443"
+    url           = "http://localhost:8080"
     tls_insecure_skip_verify = true
 }
