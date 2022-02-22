@@ -6,27 +6,19 @@ vars:
   CLUSTER_NAME: minio-cluster
   APP_NAME: k3d-terraform-minio 
   HELM_VERS: v3.8.0
-
+  METALLB_VERSION: v0.12.1
+  
 tasks:
   install:
     prefix: install
     desc: |
-      will perform installation of a cluster using k3d, and install necessary 
+      perform installation of a cluster using k3d, and install necessary
       dependencies if they are not detected within /usr/local/bin on your machine.
     deps: [helm:install]
     cmds:
       - task: k3d:create
-      - task: roles:configure
       - task: k8s:apply
       - task: k8s:createconfigMap
-
-  build:local:
-    prefix: build
-    desc: |
-      builds the application locally, and loads into the cluster.
-    cmds:
-      - docker build -t {{.APP_NAME}} . 
-      - k3d image import {{.APP_NAME}} -c {{.CLUSTER_NAME}}
 
   k3d:create:
     prefix: k3d > create
@@ -34,12 +26,15 @@ tasks:
     cmds:
       - k3d cluster create {{.CLUSTER_NAME}} 
       - k3d kubeconfig get {{.CLUSTER_NAME}} > kubeconfig.yaml
+    generates:
+      - kubeconfig.yaml
   
   k3d:destroy:
     prefix: k3d < destroy
     desc: destroy the k3d cluster with name {{.CLUSTER_NAME}}
     cmds:
       - k3d cluster delete {{.CLUSTER_NAME}}
+      - rm -f kubeconfig.yaml
   
   k3d:start:
     prefix: k3d > start
@@ -53,54 +48,73 @@ tasks:
     cmds:
     - "k3d cluster stop {{.CLUSTER_NAME}}"
 
-  helm:install:
-    prefix: helm < install
-    desc: installs helm, using version {{.HELM_VERS}} if it does not exist in /usr/local/bin/ already.
+  metallb:install:
+    desc: create the metallb config
     cmds:
-      - wget -O helm{{.HELM_VERS}}.tar.gz https://get.helm.sh/helm-{{.HELM_VERS}}-{{OS}}-amd64.tar.gz
-      - tar -zxvf helm{{.HELM_VERS}}.tar.gz
-      - sudo mv {{OS}}-amd64/helm /usr/local/bin/helm
-      - rm helm{{.HELM_VERS}}.tar.gz
-      - rm -rf {{OS}}-amd64
-    status:
-      - test -f /usr/local/bin/helm
+    - |
+        kubectl --context k3d-{{.CLUSTER_NAME}} apply \
+          -f https://raw.githubusercontent.com/metallb/metallb/{{.METALLB_VERSION}}/manifests/namespace.yaml
+    - |
+        kubectl --context k3d-{{.CLUSTER_NAME}} apply \
+          -f https://raw.githubusercontent.com/metallb/metallb/{{.METALLB_VERSION}}/manifests/metallb.yaml
+    - | 
+        kubectl --context k3d-{{.CLUSTER_NAME}} create \
+          secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
+    generates:
+      - metallb/secret.yaml
 
-  helm:uninstall:
-    prefix: helm > uninstall
-    desc: |
-      Uninstalls helm, by deleting the binary from /usr/local/bin. This assumes that
-      helm has been installed using this task file, in /usr/local/bin folder on macOS or linux.
+  secrets:create:
+    desc: create secrets.env file
     cmds:
-      - sudo rm /usr/local/bin/helm     
+    vars:
+      GIT_COMMIT:
+        sh: git log -n 1 --format=%h
+    preconditions:
+      - ! test -f secrets.env
+    generates:
+      - secrets.env
 
-  k8s:apply:
-    prefix: k8s > apply
-    desc: |
-          Applies all configuration yaml to the cluster through apply and create commands
-          via kubectl. NOTE: requires the setup of a .env file for the config map to be created!
+  helm:setup:
+    desc: configure repos
     cmds:
-      - kubectl apply -f manifests/roles
-      - kubectl apply -f manifests/servicemonitors
-  
-  k8s:delete:
-    prefix: k8s < destroy
-    desc: |
-          Applies all configuration yaml to the cluster
+    - cmd: helm repo add bitnami https://charts.bitnami.com/bitnami/
+      ignore_error: true
+
+  keycloak:install:
+    desc: install keycloak helm chart
     cmds:
-      - kubectl delete -f config/roles
-      - kubectl delete -f config/servicemonitors
-  
-  k8s:createconfigMap:
-    prefix: k8s > createconfigMap
-    desc: |
-          Creates a configMap from an expected .env configuration file. 
-          Please see default.env as an example configuration.
+    - cmd: kubectl --context k3d-{{.CLUSTER_NAME}} create ns keycloak
+      ignore_error: true
+    - | 
+        helm install --kube-context k3d-{{.CLUSTER_NAME}} \
+          --namespace keycloak \
+          -f helm/keycloak.yaml \
+          keycloak bitnami/keycloak
+
+  keycloak:uninstall:
+    desc: uninstall keycloak helm chart
     cmds:
-      - kubectl create configmap {{.APP_NAME}}-config --from-file=.env
-  
-  k8s:deleteconfigMap:
-    prefix: k8s < deleteConfigMap
-    desc: |
-      Deletes the config map from the cluster
+    - cmd: kubectl --context k3d-{{.CLUSTER_NAME}} delete ns keycloak
+
+  # Terraform
+  terraform:init:
+    desc: terraform init
     cmds:
-      - kubectl delete configmap {{.APP_NAME}}-config
+    - terraform init
+    dir: ./terraform/
+
+  terraform:plan:
+    desc: terraform plan
+    deps:
+    - task: terraform:init
+    cmds:
+    - terraform plan
+    dir: ./terraform/
+
+  terraform:apply:
+    desc: terraform apply
+    deps:
+    - task: terraform:init
+    cmds:
+    - terraform apply
+    dir: ./terraform/

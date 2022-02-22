@@ -1,9 +1,9 @@
-data "kubernetes_secret" "minio" {
-  metadata {
-    name      = "minio"
-    namespace = "minio"
-  }
-}
+#data "kubernetes_secret" "minio" {
+#  metadata {
+#    name      = "minio"
+#    namespace = "minio"
+#  }
+#}
 
 resource "kubernetes_namespace" "minio_gateway" {
   metadata {
@@ -11,17 +11,17 @@ resource "kubernetes_namespace" "minio_gateway" {
   }
 }
 
-resource "kubernetes_secret" "minio_clone" {
-  metadata {
-    name      = "minio"
-    namespace = "minio-gateway"
-  }
+#resource "kubernetes_secret" "minio_clone" {
+#  metadata {
+#    name      = "minio"
+#    namespace = "minio-gateway"
+#  }
 
-  data = {
-    "root-password"  = data.kubernetes_secret.minio.data["root-password"]
-    "root-user"      = data.kubernetes_secret.minio.data["root-user"]
-  }
-}
+#  data = {
+#    "root-password"  = data.kubernetes_secret.minio.data["root-password"]
+#    "root-user"      = data.kubernetes_secret.minio.data["root-user"]
+#  }
+#}
 
 resource "helm_release" "minio_gateway" {
   name       = "minio-gateway"

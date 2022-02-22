@@ -12,10 +12,12 @@ resource "helm_release" "keycloak" {
   values = [
     "${file("keycloak.yaml")}"
   ]
-#   set {
-#     name  = "service.type"
-#     value = "ClusterIP"
-#   }
+
+  set {
+    name  = "service.type"
+    value = "LoadBalancer"
+  }
+
   depends_on = [
     kubernetes_namespace.keycloak
   ]
@@ -94,12 +96,12 @@ resource "random_string" "keycloak_minio_user_password" {
 
 resource "keycloak_user" "minio_user" {
   realm_id   = keycloak_realm.minio_realm.id
-  username   = "cboin"
+  username   = "admin"
   enabled    = true
 
-  email      = "christian.boin@statcan.gc.ca"
-  first_name = "Christian"
-  last_name  = "Boin"
+  email      = "admin@statcan.gc.ca"
+  first_name = "Admin"
+  last_name  = "Strator"
 
   attributes = {
     policy = "readwrite"
@@ -148,22 +150,22 @@ resource "keycloak_role" "minio_client_role" {
 #   terraform import keycloak_role.minio_admin_role minio/<ROLE ID>
 # 3. After running this command, we ran `terraform plan` to observe the 'composite_roles' that were triggered to update.
 # 4. Copy the list of composite roles with a minus sign into the below resource, and then terraform plan and apply.
-resource "keycloak_role" "minio_admin_role" {
-  realm_id        = keycloak_realm.minio_realm.id
-  name            = "default-roles-minio"
-  description     = "$${role_default-roles}"
-  composite_roles = [
-    keycloak_role.minio_client_role.id,
-    "6b6dab55-7c44-4e1c-b048-ed8402972fc0",
-    "974423a2-5444-42f0-a492-623c8cceeae7",
-    "980626d3-6523-4e02-9a54-d0f642dc0a64",
-    "f221d6ab-0ea2-454f-a571-32c5d5c66c41",
-  ]
+# resource "keycloak_role" "minio_admin_role" {
+#   realm_id        = keycloak_realm.minio_realm.id
+#   name            = "default-roles-minio"
+#   description     = "$${role_default-roles}"
+#   composite_roles = [
+#     keycloak_role.minio_client_role.id,
+#     "6b6dab55-7c44-4e1c-b048-ed8402972fc0",
+#     "974423a2-5444-42f0-a492-623c8cceeae7",
+#     "980626d3-6523-4e02-9a54-d0f642dc0a64",
+#     "f221d6ab-0ea2-454f-a571-32c5d5c66c41",
+#   ]
 
   #attributes = {
   #  key = "value"
   #}
-}
+# }
 
 
 resource "kubernetes_secret" "minio_oidc_config" {
@@ -186,7 +188,7 @@ resource "kubernetes_secret" "minio_initial_user" {
   }
 
   data = {
-    "username" = "cboin"
+    "username" = "admin"
     "password" = random_string.keycloak_minio_user_password.result
   }
 }

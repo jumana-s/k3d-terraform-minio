@@ -5,3 +5,4 @@
 *.tfstate.*
 bin
 *.lock.hcl
+secrets.env

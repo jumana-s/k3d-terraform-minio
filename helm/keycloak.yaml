@@ -50,7 +50,9 @@ initdbScripts: {}
 ##
 initdbScriptsConfigMap: ""
 service:
-  type: ClusterIP
+  type: LoadBalancer
+  port: 16080
+  httpsPort: 16443
 ## Ingress configuration
 ##
 ingress:
