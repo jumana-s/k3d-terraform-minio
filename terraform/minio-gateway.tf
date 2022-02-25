@@ -1,28 +1,31 @@
-#data "kubernetes_secret" "minio" {
-#  metadata {
-#    name      = "minio"
-#    namespace = "minio"
-#  }
-#}
-
+# Create namespace
 resource "kubernetes_namespace" "minio_gateway" {
   metadata {
     name = "minio-gateway"
   }
 }
 
-#resource "kubernetes_secret" "minio_clone" {
-#  metadata {
-#    name      = "minio"
-#    namespace = "minio-gateway"
-#  }
+# Create secret for minio creds from the other minio's secret
+data "kubernetes_secret" "minio" {
+  metadata {
+    name      = "minio"
+    namespace = "minio"
+  }
+}
 
-#  data = {
-#    "root-password"  = data.kubernetes_secret.minio.data["root-password"]
-#    "root-user"      = data.kubernetes_secret.minio.data["root-user"]
-#  }
-#}
+resource "kubernetes_secret" "minio_clone" {
+  metadata {
+    name      = "minio"
+    namespace = "minio-gateway"
+  }
 
+  data = {
+    "root-password" = data.kubernetes_secret.minio.data["root-password"]
+    "root-user"     = data.kubernetes_secret.minio.data["root-user"]
+  }
+}
+
+# Deploy MinIO Gateway
 resource "helm_release" "minio_gateway" {
   name       = "minio-gateway"
   namespace  = "minio-gateway"
@@ -40,6 +43,8 @@ resource "helm_release" "minio_gateway" {
     kubernetes_namespace.minio_gateway
   ]
 }
+
+# Create secret for MinIO credentials
 
 resource "random_string" "accesskey" {
   length  = 32

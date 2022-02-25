@@ -16,8 +16,6 @@ tasks:
       dependencies if they are not detected within /usr/local/bin on your machine.
     cmds:
       - task: k3d:create
-      - task: k8s:apply
-      - task: k8s:createconfigMap
 
   k3d:create:
     prefix: k3d > create
@@ -87,7 +85,6 @@ tasks:
       - |
         helm install --kube-context k3d-{{.CLUSTER_NAME}} \
           --namespace keycloak \
-          -f helm/keycloak.yaml \
           keycloak bitnami/keycloak
 
   keycloak:uninstall:

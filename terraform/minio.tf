@@ -9,7 +9,7 @@ resource "helm_release" "minio" {
   namespace  = "minio"
   repository = "https://charts.bitnami.com/bitnami"
   chart      = "minio"
-  version    = "10.1.6"
+  version    = "10.1.12"
   #   values = [
   #     "${file("minio.yaml")}"
   #   ]

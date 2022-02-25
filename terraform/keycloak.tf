@@ -1,54 +1,9 @@
-resource "kubernetes_namespace" "keycloak" {
-  metadata {
-    name = "keycloak"
-  }
-}
-
-resource "helm_release" "keycloak" {
-  name       = "keycloak"
-  namespace  = "keycloak"
-  repository = "https://charts.bitnami.com/bitnami"
-  chart      = "keycloak"
-  values = [
-    "${file("keycloak.yaml")}"
-  ]
-
-  set {
-    name  = "service.type"
-    value = "LoadBalancer"
-  }
-
-  depends_on = [
-    kubernetes_namespace.keycloak
-  ]
-}
-
-resource "random_string" "keycloak_admin_password" {
-  length  = 32
-  special = false
-}
-
-resource "random_string" "keycloak_management_password" {
-  length  = 32
-  special = false
-}
-
-resource "kubernetes_secret" "keycloak_admin_secret" {
-  metadata {
-    name      = "keycloak-admin-secret"
-    namespace = "keycloak"
-  }
-
-  data = {
-    "admin-password"      = random_string.keycloak_admin_password.result
-    "management-password" = random_string.keycloak_management_password.result
-  }
-}
 
 # MinIO Realm
 resource "keycloak_realm" "minio_realm" {
-  realm   = "minio"
-  enabled = true
+  realm        = "minio"
+  enabled      = true
+  ssl_required = "none"
 }
 
 resource "random_string" "keycloak_minio_client_id" {
@@ -78,8 +33,6 @@ resource "keycloak_openid_client" "openid_client" {
   access_type = "CONFIDENTIAL"
   valid_redirect_uris = [
     "*"
-    #"http://localhost:8080/openid-callback",
-    #"https://minio-console.happylittlecloud.ca/openid-callback"
   ]
 
   # Seconds

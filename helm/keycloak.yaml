@@ -6,9 +6,9 @@ auth:
   createAdminUser: true
   ## @param auth.adminUser Keycloak administrator user
   ##
-  adminUser: admin
-  managementUser: manager
-  existingSecret: "keycloak-admin-secret"
+  # adminUser: admin
+  # managementUser: manager
+  # existingSecret: "keycloak-admin-secret"
 ## @param proxyAddressForwarding Enable Proxy Address Forwarding
 ## ref: https://www.keycloak.org/docs/latest/server_installation/#_setting-up-a-load-balancer-or-proxy
 ##

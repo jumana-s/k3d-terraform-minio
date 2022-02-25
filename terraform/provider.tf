@@ -55,8 +55,8 @@ provider "helm" {
 
 provider "keycloak" {
   client_id                = "admin-cli"
-  username                 = "admin"
-  password                 = random_string.keycloak_admin_password.result
+  username                 = "user"
+  password                 = var.keycloak_admin_password
   url                      = "http://localhost:8080"
   tls_insecure_skip_verify = true
 }
