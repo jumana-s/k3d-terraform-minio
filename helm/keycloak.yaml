@@ -14,10 +14,10 @@ auth:
 ##
 #proxyAddressForwarding: false
 extraEnvVars:
-- name: KEYCLOAK_PROXY_ADDRESS_FORWARDING
-  value: "true"
-- name: KEYCLOAK_FRONTEND_URL
-  value: "https://auth.happylittlecloud.ca"
+  - name: KEYCLOAK_PROXY_ADDRESS_FORWARDING
+    value: "true"
+  - name: KEYCLOAK_FRONTEND_URL
+    value: "https://auth.happylittlecloud.ca"
 ## @param configuration Keycloak Configuration. Auto-generated based on other parameters when not specified
 ## Specify content for standalone-ha.xml
 ## NOTE: This will override configuring Keycloak based on environment variables (including those set by the chart)

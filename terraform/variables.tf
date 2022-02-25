@@ -1,3 +1,3 @@
 variable "kubecontext" {
-    description = "The kubecontext"
+  description = "The kubecontext"
 }

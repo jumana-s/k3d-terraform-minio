@@ -32,23 +32,23 @@ resource "helm_release" "minio_gateway" {
   values = [
     "${file("minio-gateway.yaml")}"
   ]
-#   set {
-#     name  = "service.type"
-#     value = "ClusterIP"
-#   }
+  #   set {
+  #     name  = "service.type"
+  #     value = "ClusterIP"
+  #   }
   depends_on = [
     kubernetes_namespace.minio_gateway
   ]
 }
 
 resource "random_string" "accesskey" {
-  length           = 32
-  special          = false
+  length  = 32
+  special = false
 }
 
 resource "random_string" "secretkey" {
-  length           = 32
-  special          = false
+  length  = 32
+  special = false
 }
 
 resource "kubernetes_secret" "minio_gateway_secret" {

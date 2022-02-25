@@ -1,37 +1,37 @@
 terraform {
   required_providers {
     kubectl = {
-      source = "gavinbunney/kubectl"
+      source  = "gavinbunney/kubectl"
       version = "1.11.3"
     }
 
     kubernetes = {
-      source = "hashicorp/kubernetes"
+      source  = "hashicorp/kubernetes"
       version = "2.4.1"
     }
 
     helm = {
-      source = "hashicorp/helm"
+      source  = "hashicorp/helm"
       version = "2.3.0"
     }
 
     http = {
-      source = "hashicorp/http"
+      source  = "hashicorp/http"
       version = "2.1.0"
     }
 
     tls = {
-      source = "hashicorp/tls"
+      source  = "hashicorp/tls"
       version = "3.1.0"
     }
 
     random = {
-      source = "hashicorp/random"
+      source  = "hashicorp/random"
       version = "3.1.0"
     }
 
     keycloak = {
-      source = "mrparkers/keycloak"
+      source  = "mrparkers/keycloak"
       version = "3.6.0"
     }
   }
@@ -54,9 +54,9 @@ provider "helm" {
 }
 
 provider "keycloak" {
-    client_id     = "admin-cli"
-    username      = "admin"
-    password      = random_string.keycloak_admin_password.result
-    url           = "http://localhost:8080"
-    tls_insecure_skip_verify = true
+  client_id                = "admin-cli"
+  username                 = "admin"
+  password                 = random_string.keycloak_admin_password.result
+  url                      = "http://localhost:8080"
+  tls_insecure_skip_verify = true
 }

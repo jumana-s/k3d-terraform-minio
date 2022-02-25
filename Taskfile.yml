@@ -1,20 +1,19 @@
-version: '3'
+version: "3"
 
 silent: true
 
 vars:
   CLUSTER_NAME: minio-cluster
-  APP_NAME: k3d-terraform-minio 
+  APP_NAME: k3d-terraform-minio
   HELM_VERS: v3.8.0
   METALLB_VERSION: v0.12.1
-  
+
 tasks:
   install:
     prefix: install
     desc: |
       perform installation of a cluster using k3d, and install necessary
       dependencies if they are not detected within /usr/local/bin on your machine.
-    deps: [helm:install]
     cmds:
       - task: k3d:create
       - task: k8s:apply
@@ -24,40 +23,40 @@ tasks:
     prefix: k3d > create
     desc: create a k3d cluster, using the name {{.CLUSTER_NAME}}
     cmds:
-      - k3d cluster create {{.CLUSTER_NAME}} 
+      - k3d cluster create {{.CLUSTER_NAME}}
       - k3d kubeconfig get {{.CLUSTER_NAME}} > kubeconfig.yaml
     generates:
       - kubeconfig.yaml
-  
+
   k3d:destroy:
     prefix: k3d < destroy
     desc: destroy the k3d cluster with name {{.CLUSTER_NAME}}
     cmds:
       - k3d cluster delete {{.CLUSTER_NAME}}
       - rm -f kubeconfig.yaml
-  
+
   k3d:start:
     prefix: k3d > start
-    desc:  start the k3d cluster, using the name {{.CLUSTER_NAME}}
+    desc: start the k3d cluster, using the name {{.CLUSTER_NAME}}
     cmds:
-    - "k3d cluster start {{.CLUSTER_NAME}}"
+      - "k3d cluster start {{.CLUSTER_NAME}}"
 
   k3d:stop:
     prefix: k3d > stop
     desc: start the k3d cluster, with the name {{.CLUSTER_NAME}}
     cmds:
-    - "k3d cluster stop {{.CLUSTER_NAME}}"
+      - "k3d cluster stop {{.CLUSTER_NAME}}"
 
   metallb:install:
     desc: create the metallb config
     cmds:
-    - |
+      - |
         kubectl --context k3d-{{.CLUSTER_NAME}} apply \
           -f https://raw.githubusercontent.com/metallb/metallb/{{.METALLB_VERSION}}/manifests/namespace.yaml
-    - |
+      - |
         kubectl --context k3d-{{.CLUSTER_NAME}} apply \
           -f https://raw.githubusercontent.com/metallb/metallb/{{.METALLB_VERSION}}/manifests/metallb.yaml
-    - | 
+      - |
         kubectl --context k3d-{{.CLUSTER_NAME}} create \
           secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
     generates:
@@ -77,15 +76,15 @@ tasks:
   helm:setup:
     desc: configure repos
     cmds:
-    - cmd: helm repo add bitnami https://charts.bitnami.com/bitnami/
-      ignore_error: true
+      - cmd: helm repo add bitnami https://charts.bitnami.com/bitnami/
+        ignore_error: true
 
   keycloak:install:
     desc: install keycloak helm chart
     cmds:
-    - cmd: kubectl --context k3d-{{.CLUSTER_NAME}} create ns keycloak
-      ignore_error: true
-    - | 
+      - cmd: kubectl --context k3d-{{.CLUSTER_NAME}} create ns keycloak
+        ignore_error: true
+      - |
         helm install --kube-context k3d-{{.CLUSTER_NAME}} \
           --namespace keycloak \
           -f helm/keycloak.yaml \
@@ -94,27 +93,27 @@ tasks:
   keycloak:uninstall:
     desc: uninstall keycloak helm chart
     cmds:
-    - cmd: kubectl --context k3d-{{.CLUSTER_NAME}} delete ns keycloak
+      - cmd: kubectl --context k3d-{{.CLUSTER_NAME}} delete ns keycloak
 
   # Terraform
   terraform:init:
     desc: terraform init
     cmds:
-    - terraform init
+      - terraform init
     dir: ./terraform/
 
   terraform:plan:
     desc: terraform plan
     deps:
-    - task: terraform:init
+      - task: terraform:init
     cmds:
-    - terraform plan
+      - terraform plan
     dir: ./terraform/
 
   terraform:apply:
     desc: terraform apply
     deps:
-    - task: terraform:init
+      - task: terraform:init
     cmds:
-    - terraform apply
+      - terraform apply
     dir: ./terraform/
