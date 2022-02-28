@@ -9,7 +9,7 @@
    - Optional: run `k9s` to see your cluster
 5. Run `task helm:setup`
 6. Run `task keycloak:install`
-7. Add admin secret to tfvars
+7. Add `kubectl get secret -n keycloak keycloak -o jsonpath="{.data.admin-password}" | base64 -d` and add value to tfvars like `keycloak_admin_password = $value`
 8. Run `task terraform:init`
 9. Run `task terraform:plan`
 10. Run `task terraform:apply`
