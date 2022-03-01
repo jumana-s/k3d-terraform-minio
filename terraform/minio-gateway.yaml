@@ -52,6 +52,11 @@ extraEnvVars:
       secretKeyRef:
         name: minio-oidc-config
         key: MINIO_IDENTITY_OPENID_CLIENT_SECRET
+  - name: MINIO_IDENTITY_OPENID_REDIRECT_URI
+    valueFrom:
+      secretKeyRef:
+        name: minio-oidc-config
+        key: MINIO_IDENTITY_OPENID_REDIRECT_URI
   # - name: MINIO_IAM_OPA_URL
   #   value: http://minio-gateway-opa:8181/v1/data/httpapi/authz
 

@@ -131,6 +131,7 @@ resource "kubernetes_secret" "minio_oidc_config" {
     "MINIO_IDENTITY_OPENID_CONFIG_URL"    = "http://keycloak.keycloak:80/auth/realms/${keycloak_realm.minio_realm.id}/.well-known/openid-configuration"
     "MINIO_IDENTITY_OPENID_CLIENT_ID"     = keycloak_openid_client.openid_client.client_id
     "MINIO_IDENTITY_OPENID_CLIENT_SECRET" = keycloak_openid_client.openid_client.client_secret
+    "MINIO_IDENTITY_OPENID_REDIRECT_URI"  = "http://${kubernetes_service.minio_loadbalancer.metadata[0].name}.${kubernetes_service.minio_loadbalancer.metadata[0].namespace}/oauth_callback"
   }
 }
 

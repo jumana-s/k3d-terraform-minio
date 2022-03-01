@@ -11,6 +11,7 @@ data "kubernetes_secret" "minio" {
     name      = "minio"
     namespace = "minio"
   }
+  depends_on = [helm_release.minio]
 }
 
 resource "kubernetes_secret" "minio_clone" {
@@ -42,6 +43,25 @@ resource "helm_release" "minio_gateway" {
   depends_on = [
     kubernetes_namespace.minio_gateway
   ]
+}
+
+resource "kubernetes_service" "minio_loadbalancer" {
+  metadata {
+    name = "minio"
+    namespace = "minio-gateway"
+  }
+  spec {
+    selector = {
+      "app.kubernetes.io/instance" = "minio-gateway"
+      "app.kubernetes.io/name"     = "minio-gateway"
+    }
+    port {
+      port        = 80
+      target_port = 9001
+    }
+
+    type = "LoadBalancer"
+  }
 }
 
 # Create secret for MinIO credentials
