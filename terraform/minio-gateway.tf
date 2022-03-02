@@ -41,13 +41,14 @@ resource "helm_release" "minio_gateway" {
   #     value = "ClusterIP"
   #   }
   depends_on = [
-    kubernetes_namespace.minio_gateway
+    kubernetes_namespace.minio_gateway,
+    helm_release.minio
   ]
 }
 
 resource "kubernetes_service" "minio_loadbalancer" {
   metadata {
-    name = "minio"
+    name      = "minio"
     namespace = "minio-gateway"
   }
   spec {

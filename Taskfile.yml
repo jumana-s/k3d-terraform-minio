@@ -73,8 +73,8 @@ tasks:
     desc: destroy the k3d cluster with name {{.CLUSTER_NAME}}
     cmds:
       - k3d cluster delete {{.CLUSTER_NAME}}
-      - rm -f kubeconfig.yaml .terraform.lock.hcl terraform.tfstate terraform.tfstate.backup
-      - rm -rf .terraform
+      - rm -f kubeconfig.yaml terraform/.terraform.lock.hcl terraform/terraform.tfstate terraform/terraform.tfstate.backup
+      - rm -rf terraform/.terraform
 
   k3d:start:
     prefix: k3d > start
@@ -121,19 +121,18 @@ tasks:
   metallb:example:create:
     desc: create example metallb service
     cmds:
-    - |
-      cat <<EOF | kubectl apply -f - 
-      {{.METALLB_EXAMPLE_SERVICE}}
-      EOF
-  
+      - |
+        cat <<EOF | kubectl apply -f - 
+        {{.METALLB_EXAMPLE_SERVICE}}
+        EOF
+
   metallb:example:delete:
     desc: delete example metallb service
     cmds:
-    - |
-      cat <<EOF | kubectl delete -f - 
-      {{.METALLB_EXAMPLE_SERVICE}}
-      EOF
-
+      - |
+        cat <<EOF | kubectl delete -f - 
+        {{.METALLB_EXAMPLE_SERVICE}}
+        EOF
 
   helm:setup:
     desc: configure repos
