@@ -8,14 +8,56 @@ vars:
   HELM_VERS: v3.8.0
   METALLB_VERSION: v0.12.1
 
+  KUBECTL: kubectl --context k3d-{{.CLUSTER_NAME}}
+
+  # Nginx with LoadBalancer
+  METALLB_EXAMPLE_SERVICE: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: nginx-deployment
+    spec:
+      selector:
+        matchLabels:
+          app: nginx
+      replicas: 2 # tells deployment to run 2 pods matching the template
+      template:
+        metadata:
+          labels:
+            app: nginx
+        spec:
+          containers:
+            - name: nginx
+              image: nginx:1.14.2
+              ports:
+                - containerPort: 80
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: my-service
+    spec:
+      type: LoadBalancer
+      selector:
+        app: nginx
+      ports:
+        - protocol: TCP
+          port: 80
+          targetPort: 80
+
 tasks:
-  install:
-    prefix: install
+  deploy:
+    prefix: deploy
     desc: |
-      perform installation of a cluster using k3d, and install necessary
-      dependencies if they are not detected within /usr/local/bin on your machine.
+      Create a k3d cluster
+      Install metallb
+      Install keycloak
+      Configure Keycloak with terraform
+      Install & Configure MinIO Gateway with Terraform
     cmds:
       - task: k3d:create
+      - task: metallb:install
+      - task: keycloak:install
 
   k3d:create:
     prefix: k3d > create
@@ -31,7 +73,7 @@ tasks:
     desc: destroy the k3d cluster with name {{.CLUSTER_NAME}}
     cmds:
       - k3d cluster delete {{.CLUSTER_NAME}}
-      - rm -f kubeconfig.yaml .terraform.lock.hcl terraform.tfstate
+      - rm -f kubeconfig.yaml .terraform.lock.hcl terraform.tfstate terraform.tfstate.backup
       - rm -rf .terraform
 
   k3d:start:
@@ -50,28 +92,48 @@ tasks:
     desc: create the metallb config
     cmds:
       - |
-        kubectl --context k3d-{{.CLUSTER_NAME}} apply \
+        {{.KUBECTL}} apply \
           -f https://raw.githubusercontent.com/metallb/metallb/{{.METALLB_VERSION}}/manifests/namespace.yaml
       - |
-        kubectl --context k3d-{{.CLUSTER_NAME}} apply \
+        {{.KUBECTL}} apply \
           -f https://raw.githubusercontent.com/metallb/metallb/{{.METALLB_VERSION}}/manifests/metallb.yaml
       - |
-        kubectl --context k3d-{{.CLUSTER_NAME}} create \
-          secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
-      - kubectl apply -f metallb/configmap.yaml
-    generates:
-      - metallb/secret.yaml
-
-  secrets:create:
-    desc: create secrets.env file
-    cmds:
+        {{.KUBECTL}} create \
+          secret generic -n metallb-system memberlist \
+          --from-literal=secretkey="$(openssl rand -base64 128)"
+      - |
+        {{.KUBECTL}} create cm -n metallb-system config \
+          --from-literal=config="{{.CONTENT}}"
     vars:
-      GIT_COMMIT:
-        sh: git log -n 1 --format=%h
-    preconditions:
-      - ! test -f secrets.env
-    generates:
-      - secrets.env
+      IP_RANGE:
+        sh: |
+          docker network inspect -f '{{ "{{" }}.IPAM.Config {{ "}}" }}' k3d-minio-cluster |
+            tr -d '[]{}a-z' | 
+            awk '{print $1}' |
+            awk -F '.' '{printf("%d.%d", $1, $2)}'
+      CONTENT: |
+        address-pools:
+        - name: default
+          protocol: layer2
+          addresses:
+          - {{.IP_RANGE}}.255.200-{{.IP_RANGE}}.255.250
+
+  metallb:example:create:
+    desc: create example metallb service
+    cmds:
+    - |
+      cat <<EOF | kubectl apply -f - 
+      {{.METALLB_EXAMPLE_SERVICE}}
+      EOF
+  
+  metallb:example:delete:
+    desc: delete example metallb service
+    cmds:
+    - |
+      cat <<EOF | kubectl delete -f - 
+      {{.METALLB_EXAMPLE_SERVICE}}
+      EOF
+
 
   helm:setup:
     desc: configure repos
@@ -81,6 +143,7 @@ tasks:
 
   keycloak:install:
     desc: install keycloak helm chart
+    deps: [helm:setup]
     cmds:
       - cmd: kubectl --context k3d-{{.CLUSTER_NAME}} create ns keycloak
         ignore_error: true
