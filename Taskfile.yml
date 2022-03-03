@@ -10,6 +10,11 @@ vars:
 
   KUBECTL: kubectl --context k3d-{{.CLUSTER_NAME}}
 
+  RESET: \033[0m
+  BLACK: \033[:0;30m
+  RED: \033[:0;31m
+  GREEN: \033[:0;32m
+
   # Nginx with LoadBalancer
   METALLB_EXAMPLE_SERVICE: |
     apiVersion: apps/v1
@@ -58,6 +63,11 @@ tasks:
       - task: k3d:create
       - task: metallb:install
       - task: keycloak:install
+      - task: hosts:keycloak
+      - task: terraform:apply
+      - task: hosts:minio
+      - task: password:minio
+
 
   k3d:create:
     prefix: k3d > create
@@ -122,18 +132,17 @@ tasks:
     desc: create example metallb service
     cmds:
     - |
-      cat <<EOF | kubectl apply -f - 
-      {{.METALLB_EXAMPLE_SERVICE}}
-      EOF
+       cat <<EOF | {{.KUBECTL}} apply -f -
+       {{.METALLB_EXAMPLE_SERVICE}}
+       EOF
   
   metallb:example:delete:
     desc: delete example metallb service
     cmds:
     - |
-      cat <<EOF | kubectl delete -f - 
-      {{.METALLB_EXAMPLE_SERVICE}}
-      EOF
-
+       cat <<EOF | {{.KUBECTL}} delete -f -
+       {{.METALLB_EXAMPLE_SERVICE}}
+       EOF
 
   helm:setup:
     desc: configure repos
@@ -145,7 +154,7 @@ tasks:
     desc: install keycloak helm chart
     deps: [helm:setup]
     cmds:
-      - cmd: kubectl --context k3d-{{.CLUSTER_NAME}} create ns keycloak
+      - cmd: "{{.KUBECTL}} create ns keycloak"
         ignore_error: true
       - |
         helm install --kube-context k3d-{{.CLUSTER_NAME}} \
@@ -157,7 +166,70 @@ tasks:
     cmds:
       - cmd: kubectl --context k3d-{{.CLUSTER_NAME}} delete ns keycloak
 
-  # Terraform
+  # Configure /etc/hosts with new or existing entry
+  .host-configure:
+    interactive: true
+    desc: uninstall keycloak helm chart
+    cmds:
+      - cmd: |
+          printf '{{.RED}}'
+          echo 'Adding "{{.ARG_IP}}	{{.ARG_NAME}}" to /etc/hosts'
+          printf '{{.RESET}}'
+
+      - cmd: |
+          if grep '{{.ARG_NAME}}' /etc/hosts; then \
+              sudo sed -i 's/.*{{.ARG_NAME}}.*/{{.ARG_IP}}	{{.ARG_NAME}}/' /etc/hosts; \
+          else \
+              echo '{{.ARG_IP}}	{{.ARG_NAME}}' | sudo tee -a /etc/hosts; \
+          fi > /dev/null 2>&1
+      - cmd: |
+          printf '{{.GREEN}}'
+          echo "# /etc/hosts"
+          cat /etc/hosts
+          printf '{{.RESET}}'
+
+  hosts:keycloak:
+    interactive: true
+    desc: configure /etc/hosts file
+    cmds:
+      - task: .host-configure
+        vars:
+          ARG_NAME: keycloak.keycloak
+          ARG_IP: "{{.KEYCLOAK_IP}}"
+    vars:
+      NAMESPACE: keycloak
+      SERVICE: keycloak
+      KEYCLOAK_IP:
+        sh: |
+           IP=""
+           while test -z "$IP"; do \
+             sleep 1; \
+             IP=$({{.KUBECTL}} get svc -n {{.NAMESPACE}} {{.SERVICE}} \
+             -o jsonpath="{.status.loadBalancer.ingress[0].ip}"); \
+           done
+           echo "$IP"
+
+  hosts:minio:
+    interactive: true
+    desc: configure /etc/hosts file
+    cmds:
+      - task: .host-configure
+        vars:
+          ARG_NAME: minio.minio-gateway
+          ARG_IP: "{{.MINIO_IP}}"
+    vars:
+      NAMESPACE: minio-gateway
+      SERVICE: minio
+      MINIO_IP:
+        sh: |
+           IP=""
+           while test -z "$IP"; do \
+             sleep 1; \
+             IP=$({{.KUBECTL}} get svc -n {{.NAMESPACE}} {{.SERVICE}} \
+             -o jsonpath="{.status.loadBalancer.ingress[0].ip}"); \
+           done
+           echo "$IP"
+
   terraform:init:
     desc: terraform init
     cmds:
@@ -171,11 +243,56 @@ tasks:
     cmds:
       - terraform plan
     dir: ./terraform/
+    env:
+      TF_VAR_kubecontext: "{{.APP_NAME}}"
+      TF_VAR_keycloak_host:
+        sh: |
+          {{.KUBECTL}} get svc -n keycloak keycloak \
+          -o jsonpath="{.status.loadBalancer.ingress[0].ip}"
+      TF_VAR_keycloak_admin_password:
+        sh: |
+          {{.KUBECTL}} get secret -n keycloak keycloak \
+            -o jsonpath="{.data.admin-password}" | base64 -d
+    preconditions:
+      - sh: |
+          {{.KUBECTL}} wait \
+             --for=condition=ready pod \
+             -n keycloak \
+             -l app.kubernetes.io/name=keycloak
 
   terraform:apply:
     desc: terraform apply
     deps:
       - task: terraform:init
     cmds:
-      - terraform apply
+      - terraform apply -auto-approve
     dir: ./terraform/
+    env:
+      TF_VAR_kubecontext: "{{.APP_NAME}}"
+      TF_VAR_keycloak_host:
+        sh: |
+          {{.KUBECTL}} get svc -n keycloak keycloak \
+          -o jsonpath="{.status.loadBalancer.ingress[0].ip}"
+      TF_VAR_keycloak_admin_password:
+        sh: |
+          {{.KUBECTL}} get secret -n keycloak keycloak \
+            -o jsonpath="{.data.admin-password}" | base64 -d
+    preconditions:
+      - sh: |
+          {{.KUBECTL}} wait \
+             --for=condition=ready pod \
+             -n keycloak \
+             -l app.kubernetes.io/name=keycloak
+
+
+  password:minio:
+    desc: Get the MinIO Password
+    cmds:
+      - |
+         printf '{{.RED}}' >&2
+         echo "# MinIO Username and Password" >&2
+         printf '{{.RESET}}' >&2
+      - |
+        {{.KUBECTL}} get secret minio-initial-user \
+          -n minio-gateway \
+          -o json | jq -r '.data | to_entries | map({(.key): .value | @base64d}) | add'
