@@ -169,7 +169,7 @@ tasks:
   # Configure /etc/hosts with new or existing entry
   .host-configure:
     interactive: true
-    desc: uninstall keycloak helm chart
+    desc: configure a host in the /etc/hosts file
     cmds:
       - cmd: |
           printf '{{.RED}}'
