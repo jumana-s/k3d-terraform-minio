@@ -47,13 +47,14 @@ resource "helm_release" "minio_gateway" {
     kubernetes_namespace.minio_gateway,
     kubernetes_secret.minio_clone,
     kubernetes_secret.minio_initial_user,
-    kubernetes_secret.minio_oidc_config
+    kubernetes_secret.minio_oidc_config,
+    helm_release.minio
   ]
 }
 
 resource "kubernetes_service" "minio_loadbalancer" {
   metadata {
-    name = "minio"
+    name      = "minio"
     namespace = "minio-gateway"
   }
   spec {
