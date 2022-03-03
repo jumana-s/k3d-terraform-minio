@@ -11,7 +11,10 @@ data "kubernetes_secret" "minio" {
     name      = "minio"
     namespace = "minio"
   }
-  depends_on = [helm_release.minio]
+  depends_on = [
+    helm_release.minio,
+    kubernetes_secret.minio_oidc_config
+  ]
 }
 
 resource "kubernetes_secret" "minio_clone" {
@@ -42,6 +45,9 @@ resource "helm_release" "minio_gateway" {
   #   }
   depends_on = [
     kubernetes_namespace.minio_gateway,
+    kubernetes_secret.minio_clone,
+    kubernetes_secret.minio_initial_user,
+    kubernetes_secret.minio_oidc_config,
     helm_release.minio
   ]
 }

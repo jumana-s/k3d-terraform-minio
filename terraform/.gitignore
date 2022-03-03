@@ -6,3 +6,4 @@
 bin
 *.lock.hcl
 secrets.env
+terraform.tfvars

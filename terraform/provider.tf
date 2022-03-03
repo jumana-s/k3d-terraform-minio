@@ -57,6 +57,7 @@ provider "keycloak" {
   client_id                = "admin-cli"
   username                 = "user"
   password                 = var.keycloak_admin_password
-  url                      = "http://localhost:8080"
+  #url                      = "http://localhost:8080"
+  url                      = "http://${var.keycloak_host}"
   tls_insecure_skip_verify = true
 }
