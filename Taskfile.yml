@@ -68,7 +68,6 @@ tasks:
       - task: hosts:minio
       - task: password:minio
 
-
   k3d:create:
     prefix: k3d > create
     desc: create a k3d cluster, using the name {{.CLUSTER_NAME}}
@@ -201,13 +200,13 @@ tasks:
       SERVICE: keycloak
       KEYCLOAK_IP:
         sh: |
-           IP=""
-           while test -z "$IP"; do \
-             sleep 1; \
-             IP=$({{.KUBECTL}} get svc -n {{.NAMESPACE}} {{.SERVICE}} \
-             -o jsonpath="{.status.loadBalancer.ingress[0].ip}"); \
-           done
-           echo "$IP"
+          IP=""
+          while test -z "$IP"; do \
+            sleep 1; \
+            IP=$({{.KUBECTL}} get svc -n {{.NAMESPACE}} {{.SERVICE}} \
+            -o jsonpath="{.status.loadBalancer.ingress[0].ip}"); \
+          done
+          echo "$IP"
 
   hosts:minio:
     interactive: true
@@ -222,13 +221,13 @@ tasks:
       SERVICE: minio
       MINIO_IP:
         sh: |
-           IP=""
-           while test -z "$IP"; do \
-             sleep 1; \
-             IP=$({{.KUBECTL}} get svc -n {{.NAMESPACE}} {{.SERVICE}} \
-             -o jsonpath="{.status.loadBalancer.ingress[0].ip}"); \
-           done
-           echo "$IP"
+          IP=""
+          while test -z "$IP"; do \
+            sleep 1; \
+            IP=$({{.KUBECTL}} get svc -n {{.NAMESPACE}} {{.SERVICE}} \
+            -o jsonpath="{.status.loadBalancer.ingress[0].ip}"); \
+          done
+          echo "$IP"
 
   terraform:init:
     desc: terraform init
@@ -257,6 +256,7 @@ tasks:
       - sh: |
           {{.KUBECTL}} wait \
              --for=condition=ready pod \
+             --timeout=5m \
              -n keycloak \
              -l app.kubernetes.io/name=keycloak
 
@@ -281,17 +281,17 @@ tasks:
       - sh: |
           {{.KUBECTL}} wait \
              --for=condition=ready pod \
+             --timeout=5m \
              -n keycloak \
              -l app.kubernetes.io/name=keycloak
-
 
   password:minio:
     desc: Get the MinIO Password
     cmds:
       - |
-         printf '{{.RED}}' >&2
-         echo "# MinIO Username and Password" >&2
-         printf '{{.RESET}}' >&2
+        printf '{{.RED}}' >&2
+        echo "# MinIO Username and Password" >&2
+        printf '{{.RESET}}' >&2
       - |
         {{.KUBECTL}} get secret minio-initial-user \
           -n minio-gateway \

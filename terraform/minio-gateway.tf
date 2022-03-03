@@ -48,7 +48,8 @@ resource "helm_release" "minio_gateway" {
     kubernetes_secret.minio_clone,
     kubernetes_secret.minio_initial_user,
     kubernetes_secret.minio_oidc_config,
-    helm_release.minio
+    helm_release.minio,
+    helm_release.etcd
   ]
 }
 
