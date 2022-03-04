@@ -5,27 +5,39 @@ resource "kubernetes_config_map" "opa_policy" {
   }
 
   data = {
-    "config" = "${file("policy.rego")}"
+    "policy.rego" = "${file("policy.rego")}"
   }
+
+  depends_on = [
+    kubernetes_namespace.minio_gateway
+  ]
 }
 
 resource "kubernetes_service" "opa_service" {
   metadata {
     name      = "opa"
     namespace = "minio-gateway"
+    labels = {
+      app = "opa"
+    }
   }
   spec {
     selector = {
-      "app.kubernetes.io/name" = "opa"
+      app = "opa"
     }
     port {
+      name        = "http"
       port        = 8181
       target_port = 8181
       protocol    = "TCP"
     }
 
-    type = "ClusterIP"
+    type = "NodePort"
   }
+
+  depends_on = [
+    kubernetes_namespace.minio_gateway
+  ]
 }
 
 
@@ -34,7 +46,7 @@ resource "kubernetes_deployment" "opa" {
     name      = "opa"
     namespace = "minio-gateway"
     labels = {
-      "app.kubernetes.io/name" = "opa"
+      app = "opa"
     }
   }
 
@@ -43,24 +55,24 @@ resource "kubernetes_deployment" "opa" {
 
     selector {
       match_labels = {
-        "app.kubernetes.io/name" = "opa"
+        app = "opa"
       }
     }
 
     template {
       metadata {
+        name = "opa"
         labels = {
-          "app.kubernetes.io/name" = "opa"
+          app = "opa"
         }
       }
 
       spec {
         container {
-          image             = "openpolicyagent/opa:0.37.2"
-          name              = "opa"
-          image_pull_policy = "Always"
+          image = "openpolicyagent/opa:0.37.2"
+          name  = "opa"
 
-          args = ["run", "--ignore=.*", "--server", "/policies"]
+          args = ["run", "--ignore=.*", "--server", "/policies", "--log-level=debug", "--log-format=json-pretty"]
 
           env {
             name = "MINIO_ADMIN"
@@ -75,36 +87,12 @@ resource "kubernetes_deployment" "opa" {
           port {
             container_port = "8181"
             name           = "http"
-            protocol       = "TCP"
-          }
-
-          liveness_probe {
-            http_get {
-              path   = "/"
-              port   = 8181
-              scheme = "HTTP"
-            }
-
-            initial_delay_seconds = 3
-            period_seconds        = 3
-          }
-
-          resources {
-            limits = {
-              cpu    = "0.5"
-              memory = "500Mi"
-            }
-            requests = {
-              cpu    = "0.25"
-              memory = "250Mi"
-            }
           }
 
           volume_mount {
-            name              = "policies"
-            mount_path        = "/policies"
-            mount_propagation = "None"
-            read_only         = "true"
+            name       = "policies"
+            mount_path = "/policies"
+            read_only  = "true"
           }
 
         }
@@ -112,12 +100,15 @@ resource "kubernetes_deployment" "opa" {
         volume {
           name = "policies"
           config_map {
-            default_mode = "0420"
-            name         = "minio-gateway-opa"
+            name = "minio-gateway-opa"
           }
         }
 
       }
     }
   }
+
+  depends_on = [
+    kubernetes_namespace.minio_gateway
+  ]
 }
