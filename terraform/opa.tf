@@ -32,7 +32,7 @@ resource "kubernetes_service" "opa_service" {
       protocol    = "TCP"
     }
 
-    type = "NodePort"
+    type = "ClusterIP"
   }
 
   depends_on = [
