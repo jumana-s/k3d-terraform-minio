@@ -123,6 +123,7 @@ resource "kubernetes_deployment" "opa" {
           args    = [
             "--mode", "reverse:http://0.0.0.0:8181",
             "-p", "8000",
+            "-v",
             "-s", "/tmp/script.py"
             ]
 
