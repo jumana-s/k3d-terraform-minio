@@ -76,6 +76,12 @@ tasks:
       - k3d kubeconfig get {{.CLUSTER_NAME}} > kubeconfig.yaml
     generates:
       - kubeconfig.yaml
+    status:
+      - test -f kubeconfig.yaml
+      - | 
+        k3d cluster list -o json | \
+          jq --arg CLUSTER {{.CLUSTER_NAME}} \
+            -e 'any(.name == $CLUSTER)'
 
   k3d:destroy:
     prefix: k3d < destroy
@@ -126,6 +132,12 @@ tasks:
           protocol: layer2
           addresses:
           - {{.IP_RANGE}}.255.200-{{.IP_RANGE}}.255.250
+    status:
+      - |
+        kubectl get ns metallb-system -o json | \
+          jq -e '.status.phase == "Active"'
+      - |
+        kubectl get cm -n metallb-system config
 
   metallb:example:create:
     desc: create example metallb service
@@ -159,6 +171,13 @@ tasks:
         helm install --kube-context k3d-{{.CLUSTER_NAME}} \
           --namespace keycloak \
           keycloak bitnami/keycloak
+    status:
+      - |
+        kubectl get ns keycloak -o json | \
+          jq -e '.status.phase == "Active"'
+      - | 
+        kubectl get statefulsets.apps -n keycloak keycloak -o json | \
+          jq -e '.status | .replicas == .readyReplicas'
 
   keycloak:uninstall:
     desc: uninstall keycloak helm chart
@@ -193,12 +212,12 @@ tasks:
     cmds:
       - task: .host-configure
         vars:
-          ARG_NAME: keycloak.keycloak
-          ARG_IP: "{{.KEYCLOAK_IP}}"
+          ARG_NAME: "{{.SERVICE}}.{{.NAMESPACE}}"
+          ARG_IP: "{{.SERVICE_IP}}"
     vars:
       NAMESPACE: keycloak
       SERVICE: keycloak
-      KEYCLOAK_IP:
+      SERVICE_IP:
         sh: |
           IP=""
           while test -z "$IP"; do \
@@ -207,6 +226,9 @@ tasks:
             -o jsonpath="{.status.loadBalancer.ingress[0].ip}"); \
           done
           echo "$IP"
+    status:
+      - |
+        grep '{{.SERVICE_IP}}[[:blank:]]*{{.SERVICE}}.{{.NAMESPACE}}' /etc/hosts
 
   hosts:minio:
     interactive: true
@@ -214,12 +236,12 @@ tasks:
     cmds:
       - task: .host-configure
         vars:
-          ARG_NAME: minio.minio-gateway
-          ARG_IP: "{{.MINIO_IP}}"
+          ARG_NAME: "{{.SERVICE}}.{{.NAMESPACE}}"
+          ARG_IP: "{{.SERVICE_IP}}"
     vars:
       NAMESPACE: minio-gateway
       SERVICE: minio
-      MINIO_IP:
+      SERVICE_IP:
         sh: |
           IP=""
           while test -z "$IP"; do \
@@ -228,6 +250,9 @@ tasks:
             -o jsonpath="{.status.loadBalancer.ingress[0].ip}"); \
           done
           echo "$IP"
+    status:
+      - |
+        grep '{{.SERVICE_IP}}[[:blank:]]*{{.SERVICE}}.{{.NAMESPACE}}' /etc/hosts
 
   terraform:init:
     desc: terraform init

@@ -33,11 +33,16 @@ rl_permissions := {
 
 # Allow access from OIDC
 allow {
-    # print(input)
+    print(input)
+    trace(sprintf("input: %s", [input]))
+    # print(sprintf("input: %s", [input]))
     # input.email == "admin@statcan.gc.ca"
-    input.given_name == "Admin"
-    permissions := rl_permissions.user
-    p := permissions[_]
-    p == {"action": input.action}
+    #input.given_name == "admin"
+    #permissions := rl_permissions.user
+    #p := permissions[_]
+    #p == {"action": input.action}
 }
 
+allow {
+    1 == 1
+}
