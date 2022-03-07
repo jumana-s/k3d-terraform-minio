@@ -35,7 +35,7 @@ resource "helm_release" "minio_gateway" {
   namespace  = "minio-gateway"
   repository = "https://charts.bitnami.com/bitnami"
   chart      = "minio"
-  version    = "10.1.6"
+  version    = "9.0.1" # 9.0.1 9.0.4 9.0.5 9.0.6 
   values = [
     "${file("minio-gateway.yaml")}"
   ]
