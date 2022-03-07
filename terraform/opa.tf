@@ -13,6 +13,22 @@ resource "kubernetes_config_map" "opa_policy" {
   ]
 }
 
+resource "kubernetes_config_map" "opa_mitmproxy_script" {
+  metadata {
+    name      = "opa-mitmproxy-script"
+    namespace = "minio-gateway"
+  }
+
+  data = {
+    "script.py" = "${file("mitmproxy-script.py")}"
+  }
+
+  depends_on = [
+    kubernetes_namespace.minio_gateway
+  ]
+}
+
+
 resource "kubernetes_service" "opa_service" {
   metadata {
     name      = "opa"
@@ -28,11 +44,12 @@ resource "kubernetes_service" "opa_service" {
     port {
       name        = "http"
       port        = 8181
-      target_port = 8181
+      # Forward to nginx for logging
+      target_port = 8000
       protocol    = "TCP"
     }
 
-    type = "NodePort"
+    type = "ClusterIP"
   }
 
   depends_on = [
@@ -68,6 +85,7 @@ resource "kubernetes_deployment" "opa" {
       }
 
       spec {
+
         container {
           image = "openpolicyagent/opa:0.37.2"
           name  = "opa"
@@ -97,13 +115,44 @@ resource "kubernetes_deployment" "opa" {
 
         }
 
+        container {
+
+          name    = "mitmproxy"
+          image   = "mitmproxy/mitmproxy"
+          command = ["mitmdump"]
+          args    = [
+            "--mode", "reverse:http://0.0.0.0:8181",
+            "-p", "8000",
+            "-v",
+            "-s", "/tmp/script.py"
+            ]
+
+          port {
+            container_port = "8000"
+            name           = "http"
+          }
+
+          volume_mount {
+            name       = "mitmproxy-script"
+            mount_path = "/tmp/script.py"
+            sub_path   = "script.py"
+            read_only  = "true"
+          }
+        }
+
+        volume {
+          name = "mitmproxy-script"
+          config_map {
+            name = "opa-mitmproxy-script"
+          }
+        }
+
         volume {
           name = "policies"
           config_map {
             name = "minio-gateway-opa"
           }
         }
-
       }
     }
   }
