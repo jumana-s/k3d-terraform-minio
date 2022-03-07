@@ -79,6 +79,7 @@ tasks:
     status:
       - test -f kubeconfig.yaml
       - | 
+        set -o pipefail;
         k3d cluster list -o json | \
           jq --arg CLUSTER {{.CLUSTER_NAME}} \
             -e 'any(.name == $CLUSTER)'
@@ -134,6 +135,7 @@ tasks:
           - {{.IP_RANGE}}.255.200-{{.IP_RANGE}}.255.250
     status:
       - |
+        set -o pipefail;
         kubectl get ns metallb-system -o json | \
           jq -e '.status.phase == "Active"'
       - |
@@ -165,18 +167,19 @@ tasks:
     desc: install keycloak helm chart
     deps: [helm:setup]
     cmds:
-      - cmd: "{{.KUBECTL}} create ns keycloak"
-        ignore_error: true
+      - "{{.KUBECTL}} create ns keycloak"
       - |
         helm install --kube-context k3d-{{.CLUSTER_NAME}} \
           --namespace keycloak \
           keycloak bitnami/keycloak
     status:
       - |
-        kubectl get ns keycloak -o json | \
+        set -o pipefail;
+        {{.KUBECTL}} get ns keycloak -o json | \
           jq -e '.status.phase == "Active"'
       - | 
-        kubectl get statefulsets.apps -n keycloak keycloak -o json | \
+        set -o pipefail;
+        {{.KUBECTL}} get statefulsets.apps -n keycloak keycloak -o json | \
           jq -e '.status | .replicas == .readyReplicas'
 
   keycloak:uninstall:
