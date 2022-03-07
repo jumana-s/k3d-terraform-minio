@@ -209,6 +209,7 @@ tasks:
   hosts:keycloak:
     interactive: true
     desc: configure /etc/hosts file
+    deps: [keycloak:install]
     cmds:
       - task: .host-configure
         vars:
@@ -233,6 +234,7 @@ tasks:
   hosts:minio:
     interactive: true
     desc: configure /etc/hosts file
+    deps: [terraform:apply]
     cmds:
       - task: .host-configure
         vars:
