@@ -19,6 +19,7 @@ rl_permissions := {
         {"action": "s3:GetBucketObjectLockConfiguration"},
         {"action": "s3:ListBucket"},
         {"action": "s3:PutObject"},
+        {"action": "s3:GetBucketLocation"}
     ],
     "shared": [
         {"action": "s3:ListAllMyBuckets"},
@@ -27,11 +28,7 @@ rl_permissions := {
     ],
 }
 
-##
-## PRIVATE BUCKETS
-##
-
-# Allow access from OIDC
+# Allow access for user admin
 allow {
     input.claims.preferred_username == "admin"
     permissions := rl_permissions.user

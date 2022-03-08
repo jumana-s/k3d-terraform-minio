@@ -36,13 +36,11 @@ resource "helm_release" "minio_gateway" {
   repository = "https://charts.bitnami.com/bitnami"
   chart      = "minio"
   version    = "9.0.1" # 9.0.1 9.0.4 9.0.5 9.0.6 
+
   values = [
     "${file("minio-gateway.yaml")}"
   ]
-  #   set {
-  #     name  = "service.type"
-  #     value = "ClusterIP"
-  #   }
+
   depends_on = [
     kubernetes_namespace.minio_gateway,
     kubernetes_secret.minio_clone,

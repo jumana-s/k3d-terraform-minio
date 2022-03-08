@@ -78,7 +78,7 @@ tasks:
       - kubeconfig.yaml
     status:
       - test -f kubeconfig.yaml
-      - | 
+      - |
         set -o pipefail;
         k3d cluster list -o json | \
           jq --arg CLUSTER {{.CLUSTER_NAME}} \
@@ -173,12 +173,18 @@ tasks:
         helm install --kube-context k3d-{{.CLUSTER_NAME}} \
           --namespace keycloak \
           keycloak bitnami/keycloak
+      - |
+        {{.KUBECTL}} wait \
+          --for=condition=ready pod \
+          --timeout=5m \
+          -n keycloak \
+          -l app.kubernetes.io/name=keycloak
     status:
       - |
         set -o pipefail;
         {{.KUBECTL}} get ns keycloak -o json | \
           jq -e '.status.phase == "Active"'
-      - | 
+      - |
         set -o pipefail;
         {{.KUBECTL}} get statefulsets.apps -n keycloak keycloak -o json | \
           jq -e '.status | .replicas == .readyReplicas'

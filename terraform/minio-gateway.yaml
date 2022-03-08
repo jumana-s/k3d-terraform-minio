@@ -12,12 +12,6 @@ gateway:
     rollingUpdate:
       maxSurge: "25%"
       maxUnavailable: "25%"
-  # autoscaling:
-  #   enabled: true
-  #   minReplicas: "2"
-  #   maxReplicas: "4"
-  #   targetCPU: "60"
-  #   targetMemory: "60"
   auth:
     existingSecret: minio-gateway-secret
     s3:

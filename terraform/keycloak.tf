@@ -73,7 +73,6 @@ resource "keycloak_openid_user_attribute_protocol_mapper" "minio_user_attribute_
 
   user_attribute = "policy"
   claim_name     = "policy"
-  #claim_value_type = JSON
 }
 
 resource "keycloak_openid_audience_protocol_mapper" "minio_console_audience" {
@@ -90,36 +89,7 @@ resource "keycloak_role" "minio_client_role" {
   client_id   = keycloak_openid_client.openid_client.id
   name        = "admin"
   description = "$${role_admin}"
-  #attributes = {
-  #  key = "value"
-  #}
 }
-
-# I had to get the role ID by exporting it from the Keycloak UI as JSON
-# Creating this resource may fail, as this resource already exists in keycloak. 
-# In order to resolve this:
-# 1. We found the resource within Keycloak UI in the exported json.
-# 2. Next, we took the id field's value for default-roles-minio, and ran the below command using the id.
-#   terraform import keycloak_role.minio_admin_role minio/<ROLE ID>
-# 3. After running this command, we ran `terraform plan` to observe the 'composite_roles' that were triggered to update.
-# 4. Copy the list of composite roles with a minus sign into the below resource, and then terraform plan and apply.
-# resource "keycloak_role" "minio_admin_role" {
-#   realm_id        = keycloak_realm.minio_realm.id
-#   name            = "default-roles-minio"
-#   description     = "$${role_default-roles}"
-#   composite_roles = [
-#     keycloak_role.minio_client_role.id,
-#     "6b6dab55-7c44-4e1c-b048-ed8402972fc0",
-#     "974423a2-5444-42f0-a492-623c8cceeae7",
-#     "980626d3-6523-4e02-9a54-d0f642dc0a64",
-#     "f221d6ab-0ea2-454f-a571-32c5d5c66c41",
-#   ]
-
-#attributes = {
-#  key = "value"
-#}
-# }
-
 
 resource "kubernetes_secret" "minio_oidc_config" {
   metadata {
